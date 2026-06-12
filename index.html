@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>❤️ Наш чат</title>
+    <title> чат</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -181,7 +181,7 @@
 
     let myRole = null;
     let unreadCount = 0;
-    let originalTitle = "❤️ Наш чат";
+    let originalTitle = "чат";
     let sound = new Audio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
 
     function requestNotificationPermission() {
@@ -195,7 +195,7 @@
         if ("Notification" in window && Notification.permission === "granted") {
             if (!document.hasFocus()) {
                 new Notification("💬 Новое сообщение", {
-                    body: "Напиши ей ❤️",
+                    body: "тебе написали",
                     icon: "https://emojicdn.elk.sh/❤️",
                     silent: false
                 });
