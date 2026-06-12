@@ -20,7 +20,6 @@
             flex-direction: column;
         }
 
-        /* Шапка */
         .header {
             background: #1a1a2e;
             color: white;
@@ -35,7 +34,6 @@
             z-index: 10;
         }
 
-        /* Область сообщений */
         .messages {
             flex: 1;
             overflow-y: auto;
@@ -44,7 +42,6 @@
             flex-direction: column;
         }
 
-        /* Сообщение */
         .message {
             max-width: 75%;
             margin-bottom: 12px;
@@ -52,17 +49,14 @@
             flex-direction: column;
         }
 
-        /* Мои сообщения (справа) */
         .message.my {
             align-self: flex-end;
         }
 
-        /* Её сообщения (слева) */
         .message.her {
             align-self: flex-start;
         }
 
-        /* Имя отправителя */
         .sender {
             font-size: 11px;
             margin-bottom: 4px;
@@ -75,7 +69,6 @@
             padding-right: 8px;
         }
 
-        /* Текст сообщения */
         .bubble {
             padding: 10px 14px;
             border-radius: 18px;
@@ -96,7 +89,6 @@
             border-bottom-left-radius: 4px;
         }
 
-        /* Поле ввода */
         .input-area {
             background: #1a1a2e;
             padding: 12px;
@@ -135,7 +127,6 @@
             transform: scale(0.96);
         }
 
-        /* Статус */
         .status {
             font-size: 12px;
             color: #4caf50;
@@ -148,6 +139,41 @@
             right: 0;
             z-index: 10;
         }
+
+        /* Модальное окно выбора */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .overlay button {
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            background: #e94560;
+            color: white;
+            width: 200px;
+        }
+
+        .overlay button:first-of-type {
+            background: #1e2a3a;
+        }
+
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -156,21 +182,22 @@
     💬 НАШ ЧАТ ❤️
 </div>
 
-<div class="messages" id="messages">
-    <!-- Сюда будут приходить сообщения -->
-</div>
+<div class="messages" id="messages"></div>
 
 <div class="input-area">
-    <input type="text" id="msgInput" placeholder="Напиши ей...">
+    <input type="text" id="msgInput" placeholder="✏️ Твоё секретное послание...">
     <button id="sendBtn">➤ Отправить</button>
 </div>
 
-<div class="status" id="status">
-    ⏳ Подключение...
+<div class="status" id="status">⏳ Подключение...</div>
+
+<div id="whoami" class="overlay">
+    <h2 style="color:white;">Кто ты? ❤️</h2>
+    <button id="iAmBoy">🔥 Я (парень)</button>
+    <button id="iAmGirl">🌸 Она (девушка)</button>
 </div>
 
 <script>
-    // ========== ТВОЙ КЛЮЧ FIREBASE ==========
     const firebaseConfig = {
         apiKey: "AIzaSyCzm-eE8Gkby6ixyiBLqmstfxn1A-nJnlI",
         authDomain: "secretchat-c062d.firebaseapp.com",
@@ -180,25 +207,72 @@
         messagingSenderId: "87452782320",
         appId: "1:87452782320:web:4d3b36373e1b581b9dfc35"
     };
-    // =======================================
 
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     const messagesRef = database.ref("messages");
 
-    // Проверка статуса
-    database.ref(".info/connected").on("value", (snap) => {
-        if (snap.val() === true) {
-            document.getElementById("status").innerHTML = "✅ Подключено к чату";
-            document.getElementById("status").style.color = "#4caf50";
-        } else {
-            document.getElementById("status").innerHTML = "❌ Нет подключения";
-            document.getElementById("status").style.color = "#f44336";
-        }
-    });
+    let myRole = null; // 'boy' или 'girl'
 
-    // Функция отправки
+    // Ждём выбора роли
+    document.getElementById("iAmBoy").onclick = () => {
+        myRole = 'boy';
+        startChat();
+    };
+    document.getElementById("iAmGirl").onclick = () => {
+        myRole = 'girl';
+        startChat();
+    };
+
+    function startChat() {
+        document.getElementById("whoami").classList.add("hidden");
+        document.querySelector(".header").style.display = "block";
+        document.querySelector(".input-area").style.display = "flex";
+        
+        // Статус
+        database.ref(".info/connected").on("value", (snap) => {
+            if (snap.val() === true) {
+                document.getElementById("status").innerHTML = "✅ Подключено к чату";
+                document.getElementById("status").style.color = "#4caf50";
+            } else {
+                document.getElementById("status").innerHTML = "❌ Нет подключения";
+                document.getElementById("status").style.color = "#f44336";
+            }
+        });
+
+        // Загружаем старые сообщения
+        messagesRef.off();
+        messagesRef.on("child_added", (data) => {
+            const msg = data.val();
+            const isMe = (myRole === 'boy' && msg.senderId === 'boy') || 
+                         (myRole === 'girl' && msg.senderId === 'girl');
+            
+            const messagesDiv = document.getElementById("messages");
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `message ${isMe ? 'my' : 'her'}`;
+            
+            const senderSpan = document.createElement("div");
+            senderSpan.className = "sender";
+            
+            if (msg.senderId === 'boy') {
+                senderSpan.innerText = isMe ? "👨‍💻 Ты" : "🧔 Он";
+            } else {
+                senderSpan.innerText = isMe ? "👩‍🦰 Ты" : "🌸 Она";
+            }
+            
+            const bubbleDiv = document.createElement("div");
+            bubbleDiv.className = "bubble";
+            bubbleDiv.innerText = msg.text;
+            
+            messageDiv.appendChild(senderSpan);
+            messageDiv.appendChild(bubbleDiv);
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+    }
+
     function sendMessage() {
+        if (!myRole) return;
         const input = document.getElementById("msgInput");
         const text = input.value.trim();
         if (text === "") return;
@@ -206,49 +280,24 @@
         messagesRef.push({
             text: text,
             timestamp: Date.now(),
-            senderId: "me"  // помечаем, что это "Я"
+            senderId: myRole  // 'boy' или 'girl'
         });
 
         input.value = "";
-        // Автопрокрутка вниз после отправки
         setTimeout(() => {
             const container = document.getElementById("messages");
             container.scrollTop = container.scrollHeight;
         }, 50);
     }
 
-    // Получение сообщений
-    messagesRef.on("child_added", (data) => {
-        const msg = data.val();
-        const isMe = msg.senderId === "me";
-        
-        const messagesDiv = document.getElementById("messages");
-        const messageDiv = document.createElement("div");
-        messageDiv.className = `message ${isMe ? 'my' : 'her'}`;
-        
-        // Имя отправителя
-        const senderSpan = document.createElement("div");
-        senderSpan.className = "sender";
-        senderSpan.innerText = isMe ? "👤 Ты" : "❤️ Она";
-        
-        // Текст сообщения
-        const bubbleDiv = document.createElement("div");
-        bubbleDiv.className = "bubble";
-        bubbleDiv.innerText = msg.text;
-        
-        messageDiv.appendChild(senderSpan);
-        messageDiv.appendChild(bubbleDiv);
-        messagesDiv.appendChild(messageDiv);
-        
-        // Прокрутка вниз
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    });
-
-    // Обработчики кнопок
     document.getElementById("sendBtn").onclick = sendMessage;
     document.getElementById("msgInput").addEventListener("keypress", (e) => {
         if (e.key === "Enter") sendMessage();
     });
+
+    // Скрываем интерфейс до выбора роли
+    document.querySelector(".header").style.display = "none";
+    document.querySelector(".input-area").style.display = "none";
 </script>
 </body>
 </html>
