@@ -90,6 +90,10 @@
             transition: 0.2s;
         }
         #sendBtn:active { transform: scale(0.96); }
+        #sendBtn:disabled {
+            opacity: 0.6;
+            transform: none;
+        }
         .status {
             font-size: 12px;
             background: #1a1a2e;
@@ -235,7 +239,6 @@
         requestNotificationPermission();
     };
 
-    // Очищаем сообщения при старте, чтобы не дублировались
     function clearMessages() {
         const container = document.getElementById("messages");
         while (container.firstChild) {
@@ -248,7 +251,6 @@
         document.querySelector(".header").style.display = "block";
         document.querySelector(".input-area").style.display = "flex";
         
-        // Очищаем старые сообщения, чтобы не было дублей
         clearMessages();
         
         database.ref(".info/connected").on("value", (snap) => {
@@ -262,25 +264,20 @@
             }
         });
 
-        // Отписываемся от старых слушателей, чтобы не было дублей
         messagesRef.off();
         
-        // Подписываемся на новые сообщения
         messagesRef.on("child_added", (data) => {
             const msg = data.val();
             const isMe = (myRole === 'boy' && msg.senderId === 'boy') || 
                          (myRole === 'girl' && msg.senderId === 'girl');
             
-            // Уведомление только если сообщение не от меня и окно не активно
             if (!isMe && !document.hasFocus()) {
                 showSafeNotification();
                 updateTitleCounter(true);
             } else if (!isMe && document.hasFocus()) {
-                // Если окно активно, просто звук
                 sound.play().catch(e => console.log("Звук:", e));
             }
             
-            // Добавляем сообщение в чат
             const messagesDiv = document.getElementById("messages");
             const messageDiv = document.createElement("div");
             messageDiv.className = `message ${isMe ? 'my' : 'her'}`;
@@ -300,8 +297,6 @@
             messageDiv.appendChild(senderSpan);
             messageDiv.appendChild(bubbleDiv);
             messagesDiv.appendChild(messageDiv);
-            
-            // Прокрутка вниз
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         });
     }
@@ -312,7 +307,6 @@
         const text = input.value.trim();
         if (text === "") return;
 
-        // Отключаем кнопку на секунду, чтобы не было двойной отправки
         const sendBtn = document.getElementById("sendBtn");
         sendBtn.disabled = true;
         
@@ -321,13 +315,11 @@
             timestamp: Date.now(),
             senderId: myRole
         }).then(() => {
-            // Успешно отправлено
             input.value = "";
         }).catch((error) => {
             console.error("Ошибка отправки:", error);
             alert("Ошибка отправки: " + error.message);
         }).finally(() => {
-            // Включаем кнопку обратно
             setTimeout(() => {
                 sendBtn.disabled = false;
             }, 500);
@@ -343,4 +335,4 @@
     document.querySelector(".input-area").style.display = "none";
 </script>
 </body>
-</html>ыЫЫЫ
+</html>
