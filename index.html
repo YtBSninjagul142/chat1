@@ -1,78 +1,254 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ТЕСТ ЧАТА</title>
+    <title>Наш чат ❤️</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-</head>
-<body>
-    <h2>🔥 ТЕСТОВЫЙ ЧАТ</h2>
-    <div id="messages" style="height:300px; overflow:auto; border:1px solid black; padding:10px; margin:10px 0;"></div>
-    <input type="text" id="text" style="width:70%; padding:8px;" placeholder="Введи сообщение...">
-    <button onclick="sendMessage()">Отправить</button>
-    
-    <h3>Статус: <span id="status">⏳ Проверка...</span></h3>
-
-    <script>
-        // ТВОЙ КЛЮЧ (проверь databaseURL)
-        const firebaseConfig = {
-            apiKey: "AIzaSyCzm-eE8Gkby6ixyiBLqmstfxn1A-nJnlI",
-            authDomain: "secretchat-c062d.firebaseapp.com",
-            databaseURL: "https://secretchat-c062d-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "secretchat-c062d",
-            storageBucket: "secretchat-c062d.firebasestorage.app",
-            messagingSenderId: "87452782320",
-            appId: "1:87452782320:web:4d3b36373e1b581b9dfc35"
-        };
-
-        // Инициализация
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        const testRef = database.ref("test_messages");
-
-        // Проверка подключения
-        database.ref(".info/connected").on("value", (snap) => {
-            if (snap.val() === true) {
-                document.getElementById("status").innerHTML = "✅ ПОДКЛЮЧЕНО К FIREBASE!";
-                document.getElementById("status").style.color = "green";
-            } else {
-                document.getElementById("status").innerHTML = "❌ НЕТ ПОДКЛЮЧЕНИЯ К FIREBASE!";
-                document.getElementById("status").style.color = "red";
-            }
-        });
-
-        // Отправка сообщения
-        function sendMessage() {
-            const input = document.getElementById("text");
-            const msg = input.value.trim();
-            if (msg === "") return;
-            
-            testRef.push({
-                text: msg,
-                time: Date.now()
-            }).then(() => {
-                console.log("✅ Сообщение отправлено!");
-                input.value = "";
-            }).catch((error) => {
-                console.error("❌ Ошибка отправки:", error);
-                alert("Ошибка: " + error.message);
-            });
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        // Приём сообщений
-        testRef.on("child_added", (data) => {
-            const msg = data.val();
-            const container = document.getElementById("messages");
-            const div = document.createElement("div");
-            div.innerHTML = `📨 ${msg.text}`;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #0a0a0a;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Шапка */
+        .header {
+            background: #1a1a2e;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            border-bottom: 1px solid #e94560;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+
+        /* Область сообщений */
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 80px 15px 20px 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Сообщение */
+        .message {
+            max-width: 75%;
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Мои сообщения (справа) */
+        .message.my {
+            align-self: flex-end;
+        }
+
+        /* Её сообщения (слева) */
+        .message.her {
+            align-self: flex-start;
+        }
+
+        /* Имя отправителя */
+        .sender {
+            font-size: 11px;
+            margin-bottom: 4px;
+            padding-left: 8px;
+            color: #aaa;
+        }
+
+        .message.my .sender {
+            text-align: right;
+            padding-right: 8px;
+        }
+
+        /* Текст сообщения */
+        .bubble {
+            padding: 10px 14px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            font-size: 15px;
+            line-height: 1.4;
+        }
+
+        .message.my .bubble {
+            background: #e94560;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.her .bubble {
+            background: #1e2a3a;
+            color: white;
+            border-bottom-left-radius: 4px;
+        }
+
+        /* Поле ввода */
+        .input-area {
+            background: #1a1a2e;
+            padding: 12px;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid #333;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+
+        #msgInput {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            background: #2a2a3e;
+            color: white;
+            outline: none;
+        }
+
+        #sendBtn {
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        #sendBtn:active {
+            transform: scale(0.96);
+        }
+
+        /* Статус */
+        .status {
+            font-size: 12px;
+            color: #4caf50;
+            background: #1a1a2e;
+            padding: 5px;
+            text-align: center;
+            position: fixed;
+            bottom: 70px;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    💬 НАШ ЧАТ ❤️
+</div>
+
+<div class="messages" id="messages">
+    <!-- Сюда будут приходить сообщения -->
+</div>
+
+<div class="input-area">
+    <input type="text" id="msgInput" placeholder="Напиши ей...">
+    <button id="sendBtn">➤ Отправить</button>
+</div>
+
+<div class="status" id="status">
+    ⏳ Подключение...
+</div>
+
+<script>
+    // ========== ТВОЙ КЛЮЧ FIREBASE ==========
+    const firebaseConfig = {
+        apiKey: "AIzaSyCzm-eE8Gkby6ixyiBLqmstfxn1A-nJnlI",
+        authDomain: "secretchat-c062d.firebaseapp.com",
+        databaseURL: "https://secretchat-c062d-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "secretchat-c062d",
+        storageBucket: "secretchat-c062d.firebasestorage.app",
+        messagingSenderId: "87452782320",
+        appId: "1:87452782320:web:4d3b36373e1b581b9dfc35"
+    };
+    // =======================================
+
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const messagesRef = database.ref("messages");
+
+    // Проверка статуса
+    database.ref(".info/connected").on("value", (snap) => {
+        if (snap.val() === true) {
+            document.getElementById("status").innerHTML = "✅ Подключено к чату";
+            document.getElementById("status").style.color = "#4caf50";
+        } else {
+            document.getElementById("status").innerHTML = "❌ Нет подключения";
+            document.getElementById("status").style.color = "#f44336";
+        }
+    });
+
+    // Функция отправки
+    function sendMessage() {
+        const input = document.getElementById("msgInput");
+        const text = input.value.trim();
+        if (text === "") return;
+
+        messagesRef.push({
+            text: text,
+            timestamp: Date.now(),
+            senderId: "me"  // помечаем, что это "Я"
         });
 
-        // Отправка по Enter
-        document.getElementById("text").addEventListener("keypress", (e) => {
-            if (e.key === "Enter") sendMessage();
-        });
-    </script>
+        input.value = "";
+        // Автопрокрутка вниз после отправки
+        setTimeout(() => {
+            const container = document.getElementById("messages");
+            container.scrollTop = container.scrollHeight;
+        }, 50);
+    }
+
+    // Получение сообщений
+    messagesRef.on("child_added", (data) => {
+        const msg = data.val();
+        const isMe = msg.senderId === "me";
+        
+        const messagesDiv = document.getElementById("messages");
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${isMe ? 'my' : 'her'}`;
+        
+        // Имя отправителя
+        const senderSpan = document.createElement("div");
+        senderSpan.className = "sender";
+        senderSpan.innerText = isMe ? "👤 Ты" : "❤️ Она";
+        
+        // Текст сообщения
+        const bubbleDiv = document.createElement("div");
+        bubbleDiv.className = "bubble";
+        bubbleDiv.innerText = msg.text;
+        
+        messageDiv.appendChild(senderSpan);
+        messageDiv.appendChild(bubbleDiv);
+        messagesDiv.appendChild(messageDiv);
+        
+        // Прокрутка вниз
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    });
+
+    // Обработчики кнопок
+    document.getElementById("sendBtn").onclick = sendMessage;
+    document.getElementById("msgInput").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+    });
+</script>
 </body>
 </html>
