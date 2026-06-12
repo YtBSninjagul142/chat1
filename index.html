@@ -90,10 +90,6 @@
             transition: 0.2s;
         }
         #sendBtn:active { transform: scale(0.96); }
-        #sendBtn:disabled {
-            opacity: 0.6;
-            transform: none;
-        }
         .status {
             font-size: 12px;
             background: #1a1a2e;
@@ -169,6 +165,7 @@
 </div>
 
 <script>
+    // Firebase config
     const firebaseConfig = {
         apiKey: "AIzaSyCzm-eE8Gkby6ixyiBLqmstfxn1A-nJnlI",
         authDomain: "secretchat-c062d.firebaseapp.com",
@@ -181,12 +178,12 @@
 
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
-    const messagesRef = database.ref("messages");
-
+    
     let myRole = null;
     let unreadCount = 0;
     let originalTitle = "❤️ Наш чат";
     let sound = new Audio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
+    let messagesCache = new Set(); // Чтобы не добавлять одно сообщение дважды
 
     function requestNotificationPermission() {
         if ("Notification" in window) {
@@ -198,7 +195,7 @@
         if ("Notification" in window && Notification.permission === "granted") {
             if (!document.hasFocus()) {
                 new Notification("💬 Новое сообщение", {
-                    body: "бурмалдит❤️",
+                    body: "бурмолдит ❤️",
                     icon: "https://emojicdn.elk.sh/❤️",
                     silent: false
                 });
@@ -228,79 +225,99 @@
         updateTitleCounter(false);
     });
 
-    document.getElementById("iAmBoy").onclick = () => {
-        myRole = 'boy';
-        startChat();
-        requestNotificationPermission();
-    };
-    document.getElementById("iAmGirl").onclick = () => {
-        myRole = 'girl';
-        startChat();
-        requestNotificationPermission();
-    };
-
-    function clearMessages() {
-        const container = document.getElementById("messages");
-        while (container.firstChild) {
-            container.removeChild(container.firstChild);
+    // Функция для добавления сообщения в чат
+    function addMessageToChat(messageId, text, senderId) {
+        // Проверяем, не добавляли ли уже это сообщение
+        if (messagesCache.has(messageId)) return;
+        messagesCache.add(messageId);
+        
+        const isMe = (myRole === 'boy' && senderId === 'boy') || 
+                     (myRole === 'girl' && senderId === 'girl');
+        
+        const messagesDiv = document.getElementById("messages");
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${isMe ? 'my' : 'her'}`;
+        messageDiv.setAttribute('data-id', messageId);
+        
+        const senderSpan = document.createElement("div");
+        senderSpan.className = "sender";
+        if (senderId === 'boy') {
+            senderSpan.innerText = isMe ? "👨‍💻 Ты" : "🧔 Он";
+        } else {
+            senderSpan.innerText = isMe ? "👩‍🦰 Ты" : "🌸 Она";
         }
+        
+        const bubbleDiv = document.createElement("div");
+        bubbleDiv.className = "bubble";
+        bubbleDiv.innerText = text;
+        
+        messageDiv.appendChild(senderSpan);
+        messageDiv.appendChild(bubbleDiv);
+        messagesDiv.appendChild(messageDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
-    function startChat() {
-        document.getElementById("whoami").classList.add("hidden");
-        document.querySelector(".header").style.display = "block";
-        document.querySelector(".input-area").style.display = "flex";
+    // Загружаем все сообщения из Firebase
+    function loadAllMessages() {
+        const messagesRef = database.ref("messages");
         
-        clearMessages();
-        
-        database.ref(".info/connected").on("value", (snap) => {
-            const statusDiv = document.getElementById("status");
-            if (snap.val() === true) {
-                statusDiv.innerHTML = "✅ Подключено к чату";
-                statusDiv.style.color = "#4caf50";
-            } else {
-                statusDiv.innerHTML = "❌ Нет подключения";
-                statusDiv.style.color = "#f44336";
-            }
+        messagesRef.once("value").then((snapshot) => {
+            // Очищаем чат
+            const container = document.getElementById("messages");
+            container.innerHTML = "";
+            messagesCache.clear();
+            
+            const messages = [];
+            snapshot.forEach((childSnapshot) => {
+                const msg = childSnapshot.val();
+                messages.push({
+                    id: childSnapshot.key,
+                    text: msg.text,
+                    senderId: msg.senderId,
+                    timestamp: msg.timestamp || 0
+                });
+            });
+            
+            // Сортируем по времени
+            messages.sort((a, b) => a.timestamp - b.timestamp);
+            
+            // Добавляем все сообщения
+            messages.forEach(msg => {
+                addMessageToChat(msg.id, msg.text, msg.senderId);
+            });
         });
+    }
 
-        messagesRef.off();
+    // Слушаем новые сообщения
+    function listenForNewMessages() {
+        const messagesRef = database.ref("messages");
         
-        messagesRef.on("child_added", (data) => {
-            const msg = data.val();
+        messagesRef.on("child_added", (snapshot) => {
+            const msg = snapshot.val();
+            const messageId = snapshot.key;
+            
+            // Если это сообщение уже есть в кеше — пропускаем
+            if (messagesCache.has(messageId)) return;
+            
             const isMe = (myRole === 'boy' && msg.senderId === 'boy') || 
                          (myRole === 'girl' && msg.senderId === 'girl');
             
-            if (!isMe && !document.hasFocus()) {
-                showSafeNotification();
-                updateTitleCounter(true);
-            } else if (!isMe && document.hasFocus()) {
-                sound.play().catch(e => console.log("Звук:", e));
+            // Уведомление, если сообщение не от меня
+            if (!isMe) {
+                if (!document.hasFocus()) {
+                    showSafeNotification();
+                    updateTitleCounter(true);
+                } else {
+                    sound.play().catch(e => console.log("Звук:", e));
+                }
             }
             
-            const messagesDiv = document.getElementById("messages");
-            const messageDiv = document.createElement("div");
-            messageDiv.className = `message ${isMe ? 'my' : 'her'}`;
-            
-            const senderSpan = document.createElement("div");
-            senderSpan.className = "sender";
-            if (msg.senderId === 'boy') {
-                senderSpan.innerText = isMe ? "👨‍💻 Ты" : "🧔 Он";
-            } else {
-                senderSpan.innerText = isMe ? "👩‍🦰 Ты" : "🌸 Она";
-            }
-            
-            const bubbleDiv = document.createElement("div");
-            bubbleDiv.className = "bubble";
-            bubbleDiv.innerText = msg.text;
-            
-            messageDiv.appendChild(senderSpan);
-            messageDiv.appendChild(bubbleDiv);
-            messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            // Добавляем сообщение в чат
+            addMessageToChat(messageId, msg.text, msg.senderId);
         });
     }
 
+    // Отправка сообщения
     function sendMessage() {
         if (!myRole) return;
         const input = document.getElementById("msgInput");
@@ -310,7 +327,10 @@
         const sendBtn = document.getElementById("sendBtn");
         sendBtn.disabled = true;
         
-        messagesRef.push({
+        const messagesRef = database.ref("messages");
+        const newMessageRef = messagesRef.push();
+        
+        newMessageRef.set({
             text: text,
             timestamp: Date.now(),
             senderId: myRole
@@ -326,11 +346,50 @@
         });
     }
 
+    // Инициализация чата
+    function startChat() {
+        document.getElementById("whoami").classList.add("hidden");
+        document.querySelector(".header").style.display = "block";
+        document.querySelector(".input-area").style.display = "flex";
+        
+        // Статус подключения
+        database.ref(".info/connected").on("value", (snap) => {
+            const statusDiv = document.getElementById("status");
+            if (snap.val() === true) {
+                statusDiv.innerHTML = "✅ Подключено к чату";
+                statusDiv.style.color = "#4caf50";
+            } else {
+                statusDiv.innerHTML = "❌ Нет подключения";
+                statusDiv.style.color = "#f44336";
+            }
+        });
+        
+        // Загружаем старые сообщения
+        loadAllMessages();
+        
+        // Начинаем слушать новые
+        listenForNewMessages();
+    }
+
+    // Обработчики выбора роли
+    document.getElementById("iAmBoy").onclick = () => {
+        myRole = 'boy';
+        startChat();
+        requestNotificationPermission();
+    };
+    document.getElementById("iAmGirl").onclick = () => {
+        myRole = 'girl';
+        startChat();
+        requestNotificationPermission();
+    };
+
+    // Обработчики кнопок
     document.getElementById("sendBtn").onclick = sendMessage;
     document.getElementById("msgInput").addEventListener("keypress", (e) => {
         if (e.key === "Enter") sendMessage();
     });
 
+    // Скрываем интерфейс до выбора роли
     document.querySelector(".header").style.display = "none";
     document.querySelector(".input-area").style.display = "none";
 </script>
