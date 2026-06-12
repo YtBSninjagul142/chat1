@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title> чат</title>
+    <title>❤️ Наш чат</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -181,7 +181,7 @@
 
     let myRole = null;
     let unreadCount = 0;
-    let originalTitle = "чат";
+    let originalTitle = "❤️ Наш чат";
     let sound = new Audio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
 
     function requestNotificationPermission() {
@@ -190,12 +190,11 @@
         }
     }
 
-    // БЕЗОПАСНОЕ уведомление — без слов "твой парень"
     function showSafeNotification() {
         if ("Notification" in window && Notification.permission === "granted") {
             if (!document.hasFocus()) {
                 new Notification("💬 Новое сообщение", {
-                    body: "тебе написали",
+                    body: "Напиши ей ❤️",
                     icon: "https://emojicdn.elk.sh/❤️",
                     silent: false
                 });
@@ -236,10 +235,21 @@
         requestNotificationPermission();
     };
 
+    // Очищаем сообщения при старте, чтобы не дублировались
+    function clearMessages() {
+        const container = document.getElementById("messages");
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
+    }
+
     function startChat() {
         document.getElementById("whoami").classList.add("hidden");
         document.querySelector(".header").style.display = "block";
         document.querySelector(".input-area").style.display = "flex";
+        
+        // Очищаем старые сообщения, чтобы не было дублей
+        clearMessages();
         
         database.ref(".info/connected").on("value", (snap) => {
             const statusDiv = document.getElementById("status");
@@ -252,17 +262,25 @@
             }
         });
 
+        // Отписываемся от старых слушателей, чтобы не было дублей
         messagesRef.off();
+        
+        // Подписываемся на новые сообщения
         messagesRef.on("child_added", (data) => {
             const msg = data.val();
             const isMe = (myRole === 'boy' && msg.senderId === 'boy') || 
                          (myRole === 'girl' && msg.senderId === 'girl');
             
+            // Уведомление только если сообщение не от меня и окно не активно
             if (!isMe && !document.hasFocus()) {
                 showSafeNotification();
                 updateTitleCounter(true);
+            } else if (!isMe && document.hasFocus()) {
+                // Если окно активно, просто звук
+                sound.play().catch(e => console.log("Звук:", e));
             }
             
+            // Добавляем сообщение в чат
             const messagesDiv = document.getElementById("messages");
             const messageDiv = document.createElement("div");
             messageDiv.className = `message ${isMe ? 'my' : 'her'}`;
@@ -282,6 +300,8 @@
             messageDiv.appendChild(senderSpan);
             messageDiv.appendChild(bubbleDiv);
             messagesDiv.appendChild(messageDiv);
+            
+            // Прокрутка вниз
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         });
     }
@@ -292,17 +312,26 @@
         const text = input.value.trim();
         if (text === "") return;
 
+        // Отключаем кнопку на секунду, чтобы не было двойной отправки
+        const sendBtn = document.getElementById("sendBtn");
+        sendBtn.disabled = true;
+        
         messagesRef.push({
             text: text,
             timestamp: Date.now(),
             senderId: myRole
+        }).then(() => {
+            // Успешно отправлено
+            input.value = "";
+        }).catch((error) => {
+            console.error("Ошибка отправки:", error);
+            alert("Ошибка отправки: " + error.message);
+        }).finally(() => {
+            // Включаем кнопку обратно
+            setTimeout(() => {
+                sendBtn.disabled = false;
+            }, 500);
         });
-
-        input.value = "";
-        setTimeout(() => {
-            const container = document.getElementById("messages");
-            container.scrollTop = container.scrollHeight;
-        }, 50);
     }
 
     document.getElementById("sendBtn").onclick = sendMessage;
@@ -314,4 +343,4 @@
     document.querySelector(".input-area").style.display = "none";
 </script>
 </body>
-</html>
+</html>ыЫЫЫ
