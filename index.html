@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Мои заметки</title>
+    <title>❤️ Наш чат</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -20,7 +20,7 @@
             padding: 15px;
             text-align: center;
             font-weight: bold;
-            border-bottom: 1px solid #2a2a3e;
+            border-bottom: 1px solid #e94560;
             position: fixed;
             top: 0;
             left: 0;
@@ -56,14 +56,14 @@
             font-size: 15px;
             line-height: 1.4;
         }
-        .message.my .bubble { background: #2a5f5f; color: white; border-bottom-right-radius: 4px; }
+        .message.my .bubble { background: #e94560; color: white; border-bottom-right-radius: 4px; }
         .message.her .bubble { background: #1e2a3a; color: white; border-bottom-left-radius: 4px; }
         .input-area {
             background: #1a1a2e;
             padding: 12px;
             display: flex;
             gap: 10px;
-            border-top: 1px solid #2a2a3e;
+            border-top: 1px solid #333;
             position: fixed;
             bottom: 0;
             left: 0;
@@ -80,14 +80,16 @@
             outline: none;
         }
         #sendBtn {
-            background: #2a5f5f;
+            background: #e94560;
             color: white;
             border: none;
             border-radius: 25px;
             padding: 12px 20px;
             font-size: 16px;
             cursor: pointer;
+            transition: 0.2s;
         }
+        #sendBtn:active { transform: scale(0.96); }
         .status {
             font-size: 12px;
             background: #1a1a2e;
@@ -105,7 +107,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: #0a0a0a;
+            background: rgba(0,0,0,0.95);
             z-index: 100;
             display: flex;
             justify-content: center;
@@ -119,7 +121,7 @@
             border: none;
             border-radius: 30px;
             cursor: pointer;
-            background: #2a5f5f;
+            background: #e94560;
             color: white;
             width: 220px;
         }
@@ -131,28 +133,35 @@
             margin-top: 20px;
             text-align: center;
         }
+        .title-counter {
+            font-size: 14px;
+            background: #e94560;
+            border-radius: 12px;
+            padding: 2px 8px;
+            margin-left: 8px;
+        }
     </style>
 </head>
 <body>
 
 <div class="header">
-    📝 Мои заметки
+    💬 НАШ ЧАТ ❤️ <span id="counter-badge" style="display:none;" class="title-counter">0</span>
 </div>
 
 <div class="messages" id="messages"></div>
 
 <div class="input-area">
-    <input type="text" id="msgInput" placeholder="Заметка...">
-    <button id="sendBtn">Сохранить</button>
+    <input type="text" id="msgInput" placeholder="✏️ Твоё секретное послание...">
+    <button id="sendBtn">➤ Отправить</button>
 </div>
 
-<div class="status" id="status">⏳</div>
+<div class="status" id="status">⏳ Подключение...</div>
 
 <div id="whoami" class="overlay">
-    <h2 style="color:white;">Вход</h2>
-    <button id="iAmBoy">Вход 1</button>
-    <button id="iAmGirl">Вход 2</button>
-    <div id="notify-perm">🔔 Включите уведомления (без текста)</div>
+    <h2 style="color:white;">Кто ты? ❤️</h2>
+    <button id="iAmBoy">🔥 Я (парень)</button>
+    <button id="iAmGirl">🌸 Я (девушка)</button>
+    <div id="notify-perm">🔔 После входа разреши уведомления</div>
 </div>
 
 <script>
@@ -172,7 +181,8 @@
 
     let myRole = null;
     let unreadCount = 0;
-    let originalTitle = "Мои заметки";
+    let originalTitle = "❤️ Наш чат";
+    let sound = new Audio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
 
     function requestNotificationPermission() {
         if ("Notification" in window) {
@@ -180,16 +190,16 @@
         }
     }
 
-    // БЕЗОПАСНОЕ уведомление: без имени, без текста, только значок
-    function showSilentNotification() {
+    // БЕЗОПАСНОЕ уведомление — без слов "твой парень"
+    function showSafeNotification() {
         if ("Notification" in window && Notification.permission === "granted") {
-            // Проверяем, что окно не активно
             if (!document.hasFocus()) {
-                new Notification("📌", {  // просто эмодзи, никакого текста
-                    body: "",
-                    silent: true,        // без звука
-                    requireInteraction: false
+                new Notification("💬 Новое сообщение", {
+                    body: "Напиши ей ❤️",
+                    icon: "https://emojicdn.elk.sh/❤️",
+                    silent: false
                 });
+                sound.play().catch(e => console.log("Звук:", e));
             }
         }
     }
@@ -200,10 +210,14 @@
         } else {
             unreadCount = 0;
         }
+        const badge = document.getElementById("counter-badge");
         if (unreadCount > 0) {
-            document.title = `(${unreadCount}) Мои заметки`;
+            document.title = `(${unreadCount}) ❤️ Наш чат`;
+            badge.style.display = "inline-block";
+            badge.innerText = unreadCount;
         } else {
             document.title = originalTitle;
+            badge.style.display = "none";
         }
     }
 
@@ -230,10 +244,10 @@
         database.ref(".info/connected").on("value", (snap) => {
             const statusDiv = document.getElementById("status");
             if (snap.val() === true) {
-                statusDiv.innerHTML = "✅";
+                statusDiv.innerHTML = "✅ Подключено к чату";
                 statusDiv.style.color = "#4caf50";
             } else {
-                statusDiv.innerHTML = "❌";
+                statusDiv.innerHTML = "❌ Нет подключения";
                 statusDiv.style.color = "#f44336";
             }
         });
@@ -244,13 +258,11 @@
             const isMe = (myRole === 'boy' && msg.senderId === 'boy') || 
                          (myRole === 'girl' && msg.senderId === 'girl');
             
-            // Бесшумное уведомление без текста
             if (!isMe && !document.hasFocus()) {
-                showSilentNotification();
+                showSafeNotification();
                 updateTitleCounter(true);
             }
             
-            // Отображение в чате
             const messagesDiv = document.getElementById("messages");
             const messageDiv = document.createElement("div");
             messageDiv.className = `message ${isMe ? 'my' : 'her'}`;
@@ -258,9 +270,9 @@
             const senderSpan = document.createElement("div");
             senderSpan.className = "sender";
             if (msg.senderId === 'boy') {
-                senderSpan.innerText = isMe ? "Я" : "Она";
+                senderSpan.innerText = isMe ? "👨‍💻 Ты" : "🧔 Он";
             } else {
-                senderSpan.innerText = isMe ? "Я" : "Он";
+                senderSpan.innerText = isMe ? "👩‍🦰 Ты" : "🌸 Она";
             }
             
             const bubbleDiv = document.createElement("div");
