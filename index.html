@@ -1,17 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Наш чат ❤️</title>
+    <title>❤️ Наш чат</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background: #0a0a0a;
@@ -19,7 +14,6 @@
             display: flex;
             flex-direction: column;
         }
-
         .header {
             background: #1a1a2e;
             color: white;
@@ -33,7 +27,6 @@
             right: 0;
             z-index: 10;
         }
-
         .messages {
             flex: 1;
             overflow-y: auto;
@@ -41,34 +34,21 @@
             display: flex;
             flex-direction: column;
         }
-
         .message {
             max-width: 75%;
             margin-bottom: 12px;
             display: flex;
             flex-direction: column;
         }
-
-        .message.my {
-            align-self: flex-end;
-        }
-
-        .message.her {
-            align-self: flex-start;
-        }
-
+        .message.my { align-self: flex-end; }
+        .message.her { align-self: flex-start; }
         .sender {
             font-size: 11px;
             margin-bottom: 4px;
             padding-left: 8px;
             color: #aaa;
         }
-
-        .message.my .sender {
-            text-align: right;
-            padding-right: 8px;
-        }
-
+        .message.my .sender { text-align: right; padding-right: 8px; }
         .bubble {
             padding: 10px 14px;
             border-radius: 18px;
@@ -76,19 +56,8 @@
             font-size: 15px;
             line-height: 1.4;
         }
-
-        .message.my .bubble {
-            background: #e94560;
-            color: white;
-            border-bottom-right-radius: 4px;
-        }
-
-        .message.her .bubble {
-            background: #1e2a3a;
-            color: white;
-            border-bottom-left-radius: 4px;
-        }
-
+        .message.my .bubble { background: #e94560; color: white; border-bottom-right-radius: 4px; }
+        .message.her .bubble { background: #1e2a3a; color: white; border-bottom-left-radius: 4px; }
         .input-area {
             background: #1a1a2e;
             padding: 12px;
@@ -100,7 +69,6 @@
             left: 0;
             right: 0;
         }
-
         #msgInput {
             flex: 1;
             padding: 12px;
@@ -111,7 +79,6 @@
             color: white;
             outline: none;
         }
-
         #sendBtn {
             background: #e94560;
             color: white;
@@ -122,14 +89,9 @@
             cursor: pointer;
             transition: 0.2s;
         }
-
-        #sendBtn:active {
-            transform: scale(0.96);
-        }
-
+        #sendBtn:active { transform: scale(0.96); }
         .status {
             font-size: 12px;
-            color: #4caf50;
             background: #1a1a2e;
             padding: 5px;
             text-align: center;
@@ -139,15 +101,13 @@
             right: 0;
             z-index: 10;
         }
-
-        /* Модальное окно выбора */
         .overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.95);
             z-index: 100;
             display: flex;
             justify-content: center;
@@ -155,7 +115,6 @@
             flex-direction: column;
             gap: 20px;
         }
-
         .overlay button {
             padding: 15px 30px;
             font-size: 18px;
@@ -164,22 +123,29 @@
             cursor: pointer;
             background: #e94560;
             color: white;
-            width: 200px;
+            width: 220px;
         }
-
-        .overlay button:first-of-type {
-            background: #1e2a3a;
+        .overlay button:first-of-type { background: #1e2a3a; }
+        .hidden { display: none; }
+        #notify-perm {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 20px;
+            text-align: center;
         }
-
-        .hidden {
-            display: none;
+        .title-counter {
+            font-size: 14px;
+            background: #e94560;
+            border-radius: 12px;
+            padding: 2px 8px;
+            margin-left: 8px;
         }
     </style>
 </head>
 <body>
 
 <div class="header">
-    💬 НАШ ЧАТ ❤️
+    💬 НАШ ЧАТ ❤️ <span id="counter-badge" style="display:none;" class="title-counter">0</span>
 </div>
 
 <div class="messages" id="messages"></div>
@@ -193,11 +159,13 @@
 
 <div id="whoami" class="overlay">
     <h2 style="color:white;">Кто ты? ❤️</h2>
-    <button id="iAmBoy">🔥(парень)</button>
-    <button id="iAmGirl">🌸(девушка)</button>
+    <button id="iAmBoy">🔥 Я (парень)</button>
+    <button id="iAmGirl">🌸 Я (девушка)</button>
+    <div id="notify-perm">🔔 После входа разреши уведомления</div>
 </div>
 
 <script>
+    // ========== ТВОЙ КЛЮЧ FIREBASE ==========
     const firebaseConfig = {
         apiKey: "AIzaSyCzm-eE8Gkby6ixyiBLqmstfxn1A-nJnlI",
         authDomain: "secretchat-c062d.firebaseapp.com",
@@ -207,21 +175,72 @@
         messagingSenderId: "87452782320",
         appId: "1:87452782320:web:4d3b36373e1b581b9dfc35"
     };
+    // =======================================
 
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     const messagesRef = database.ref("messages");
 
     let myRole = null; // 'boy' или 'girl'
+    let unreadCount = 0;
+    let originalTitle = "❤️ Наш чат";
+    let sound = new Audio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
 
-    // Ждём выбора роли
+    // Запрашиваем разрешение на уведомления
+    function requestNotificationPermission() {
+        if ("Notification" in window) {
+            Notification.requestPermission();
+        }
+    }
+
+    // Отправка уведомления
+    function showNotification(senderName, messageText) {
+        if ("Notification" in window && Notification.permission === "granted") {
+            new Notification(`💬 Новое сообщение от ${senderName}`, {
+                body: messageText,
+                icon: "https://emojicdn.elk.sh/❤️",
+                silent: false
+            });
+            // Звук
+            sound.play().catch(e => console.log("Звук не воспроизвёлся:", e));
+        }
+        // Мигаем заголовком
+        updateTitleCounter(true);
+    }
+
+    // Счётчик непрочитанных в заголовке
+    function updateTitleCounter(increment) {
+        if (increment) {
+            unreadCount++;
+        } else {
+            unreadCount = 0;
+        }
+        
+        const badge = document.getElementById("counter-badge");
+        if (unreadCount > 0) {
+            document.title = `(${unreadCount}) ❤️ Наш чат`;
+            badge.style.display = "inline-block";
+            badge.innerText = unreadCount;
+        } else {
+            document.title = originalTitle;
+            badge.style.display = "none";
+        }
+    }
+
+    // Сброс счётчика при фокусе на окно
+    window.addEventListener("focus", () => {
+        updateTitleCounter(false);
+    });
+
     document.getElementById("iAmBoy").onclick = () => {
         myRole = 'boy';
         startChat();
+        requestNotificationPermission();
     };
     document.getElementById("iAmGirl").onclick = () => {
         myRole = 'girl';
         startChat();
+        requestNotificationPermission();
     };
 
     function startChat() {
@@ -229,31 +248,50 @@
         document.querySelector(".header").style.display = "block";
         document.querySelector(".input-area").style.display = "flex";
         
-        // Статус
         database.ref(".info/connected").on("value", (snap) => {
+            const statusDiv = document.getElementById("status");
             if (snap.val() === true) {
-                document.getElementById("status").innerHTML = "✅ Подключено к чату";
-                document.getElementById("status").style.color = "#4caf50";
+                statusDiv.innerHTML = "✅ Подключено к чату";
+                statusDiv.style.color = "#4caf50";
             } else {
-                document.getElementById("status").innerHTML = "❌ Нет подключения";
-                document.getElementById("status").style.color = "#f44336";
+                statusDiv.innerHTML = "❌ Нет подключения";
+                statusDiv.style.color = "#f44336";
             }
         });
 
-        // Загружаем старые сообщения
+        // Отслеживание новых сообщений
+        let isFirstLoad = true;
         messagesRef.off();
         messagesRef.on("child_added", (data) => {
             const msg = data.val();
             const isMe = (myRole === 'boy' && msg.senderId === 'boy') || 
                          (myRole === 'girl' && msg.senderId === 'girl');
             
+            // Имя отправителя для уведомления
+            let senderName = "";
+            if (msg.senderId === 'boy') senderName = "Твой парень";
+            else senderName = "Твоя девушка";
+            
+            // Если сообщение НЕ от меня и окно НЕ в фокусе — уведомление
+            if (!isMe && !document.hasFocus()) {
+                showNotification(senderName, msg.text);
+            } else if (!isMe && document.hasFocus()) {
+                // Если в фокусе — просто звук (опционально)
+                sound.play().catch(e => console.log("Звук:", e));
+            }
+            
+            // Если сообщение не от меня и окно в фокусе — не увеличиваем счётчик
+            if (!isMe && !document.hasFocus()) {
+                updateTitleCounter(true);
+            }
+            
+            // Отображаем сообщение в чате
             const messagesDiv = document.getElementById("messages");
             const messageDiv = document.createElement("div");
             messageDiv.className = `message ${isMe ? 'my' : 'her'}`;
             
             const senderSpan = document.createElement("div");
             senderSpan.className = "sender";
-            
             if (msg.senderId === 'boy') {
                 senderSpan.innerText = isMe ? "👨‍💻 Ты" : "🧔 Он";
             } else {
@@ -280,7 +318,7 @@
         messagesRef.push({
             text: text,
             timestamp: Date.now(),
-            senderId: myRole  // 'boy' или 'girl'
+            senderId: myRole
         });
 
         input.value = "";
@@ -295,7 +333,6 @@
         if (e.key === "Enter") sendMessage();
     });
 
-    // Скрываем интерфейс до выбора роли
     document.querySelector(".header").style.display = "none";
     document.querySelector(".input-area").style.display = "none";
 </script>
