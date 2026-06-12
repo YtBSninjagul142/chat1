@@ -1,83 +1,76 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Наш секретный чат</title>
+    <title>ТЕСТ ЧАТА</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        * { box-sizing: border-box; }
-        body { font-family: Arial; max-width: 600px; margin: 0 auto; padding: 20px; background: #1a1a2e; color: white; }
-        h2 { text-align: center; color: #0f3460; }
-        #messages { background: #16213e; height: 500px; overflow-y: auto; padding: 10px; border-radius: 10px; margin-bottom: 10px; }
-        .msg { background: #0f3460; padding: 8px 12px; margin: 5px 0; border-radius: 8px; word-wrap: break-word; }
-        #msgInput { width: 80%; padding: 10px; border: none; border-radius: 8px; font-size: 16px; }
-        #sendBtn { width: 18%; padding: 10px; background: #e94560; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
-        #auth-status { text-align: center; padding: 10px; background: #0f3460; border-radius: 8px; margin-bottom: 10px; }
-        .hidden { display: none; }
-        footer { text-align: center; font-size: 12px; color: #888; margin-top: 20px; }
-    </style>
 </head>
 <body>
-    <h2>💬 НАШ ЧАТ 💬</h2>
-    <div id="auth-status">⏳ Подключение...</div>
-    <div id="messages" class="hidden"></div>
-    <div style="margin-top: 10px;" class="hidden">
-        <input type="text" id="msgInput" placeholder="Напиши сообщение...">
-        <button id="sendBtn">➤</button>
-    </div>
-    <footer>Только мы двое ❤️</footer>
+    <h2>🔥 ТЕСТОВЫЙ ЧАТ</h2>
+    <div id="messages" style="height:300px; overflow:auto; border:1px solid black; padding:10px; margin:10px 0;"></div>
+    <input type="text" id="text" style="width:70%; padding:8px;" placeholder="Введи сообщение...">
+    <button onclick="sendMessage()">Отправить</button>
+    
+    <h3>Статус: <span id="status">⏳ Проверка...</span></h3>
 
     <script>
+        // ТВОЙ КЛЮЧ (проверь databaseURL)
         const firebaseConfig = {
             apiKey: "AIzaSyCzm-eE8Gkby6ixyiBLqmstfxn1A-nJnlI",
             authDomain: "secretchat-c062d.firebaseapp.com",
-            databaseURL: "https://secretchat-c062d-default-rtdb.firebaseio.com",
+            databaseURL: "https://secretchat-c062d-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "secretchat-c062d",
             storageBucket: "secretchat-c062d.firebasestorage.app",
             messagingSenderId: "87452782320",
             appId: "1:87452782320:web:4d3b36373e1b581b9dfc35"
         };
 
+        // Инициализация
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-        const auth = firebase.auth();
-        const messagesRef = database.ref("messages");
+        const testRef = database.ref("test_messages");
 
-        auth.signInAnonymously()
-            .then(() => {
-                document.getElementById("auth-status").innerHTML = "✅ Подключено! Чат работает.";
-                document.getElementById("messages").classList.remove("hidden");
-                document.querySelectorAll(".hidden").forEach(el => el.classList.remove("hidden"));
-            })
-            .catch((error) => {
-                document.getElementById("auth-status").innerHTML = "❌ Ошибка: " + error.message;
-            });
+        // Проверка подключения
+        database.ref(".info/connected").on("value", (snap) => {
+            if (snap.val() === true) {
+                document.getElementById("status").innerHTML = "✅ ПОДКЛЮЧЕНО К FIREBASE!";
+                document.getElementById("status").style.color = "green";
+            } else {
+                document.getElementById("status").innerHTML = "❌ НЕТ ПОДКЛЮЧЕНИЯ К FIREBASE!";
+                document.getElementById("status").style.color = "red";
+            }
+        });
 
+        // Отправка сообщения
         function sendMessage() {
-            const input = document.getElementById("msgInput");
-            const text = input.value.trim();
-            if (text === "") return;
-            messagesRef.push({
-                text: text,
-                timestamp: Date.now()
+            const input = document.getElementById("text");
+            const msg = input.value.trim();
+            if (msg === "") return;
+            
+            testRef.push({
+                text: msg,
+                time: Date.now()
+            }).then(() => {
+                console.log("✅ Сообщение отправлено!");
+                input.value = "";
+            }).catch((error) => {
+                console.error("❌ Ошибка отправки:", error);
+                alert("Ошибка: " + error.message);
             });
-            input.value = "";
         }
 
-        messagesRef.on("child_added", function(data) {
+        // Приём сообщений
+        testRef.on("child_added", (data) => {
             const msg = data.val();
             const container = document.getElementById("messages");
-            const p = document.createElement("div");
-            p.className = "msg";
-            p.innerHTML = `📨 ${msg.text}`;
-            container.appendChild(p);
+            const div = document.createElement("div");
+            div.innerHTML = `📨 ${msg.text}`;
+            container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         });
 
-        document.getElementById("sendBtn").onclick = sendMessage;
-        document.getElementById("msgInput").addEventListener("keypress", function(e) {
+        // Отправка по Enter
+        document.getElementById("text").addEventListener("keypress", (e) => {
             if (e.key === "Enter") sendMessage();
         });
     </script>
